@@ -180,23 +180,38 @@ pytest tests/ --cov=app --cov-report=html --cov-report=xml -v
 ---
 
 ## Структура репозиторію
-support-system/
-├── app/
-│   ├── core/security.py
-│   ├── modules/
-│   │   ├── admin/
-│   │   ├── auth/
-│   │   ├── faq/
-│   │   ├── messages/
-│   │   ├── tickets/
-│   │   └── users/
-│   ├── database.py
-│   └── main.py
-├── static/index.html
-├── tests/
-├── .github/workflows/ci-pipeline.yml
-├── sonar-project.properties
-├── pytest.ini
-├── setup.cfg
-├── requirements.txt
-└── requirements-dev.txt
+
+**app/** — основний код застосунку
+- `app/core/security.py` — автентифікація, токени, хешування
+- `app/modules/admin/` — статистика системи
+- `app/modules/auth/` — авторизація
+- `app/modules/faq/` — FAQ
+- `app/modules/messages/` — повідомлення
+- `app/modules/tickets/` — тікети
+- `app/modules/users/` — користувачі
+- `app/database.py` — підключення SQLite
+- `app/main.py` — точка входу FastAPI
+
+**static/** — фронтенд
+- `static/index.html` — веб-інтерфейс
+
+**tests/** — 132 тести (pytest)
+
+**.github/workflows/ci-pipeline.yml** — GitHub Actions пайплайн
+
+**sonar-project.properties** — конфігурація SonarCloud
+
+**pytest.ini** — конфігурація pytest
+
+**setup.cfg** — конфігурація coverage
+
+**requirements.txt** — залежності
+
+**requirements-dev.txt** — залежності для розробки
+
+## Додаток
+логін і пароль для адмін аккаунту
+
+логін: admin
+
+пароль: admin123
