@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupportDesk — Система підтримки</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a26;
+  --border: #2a2a3d;
+  --accent: #6c63ff;
+  --accent2: #ff6584;
+  --accent3: #43e97b;
+  --text: #e8e8f0;
+  --text2: #8888aa;
+  --text3: #555570;
+  --danger: #ff4d6d;
+  --warning: #ffd166;
+  --success: #43e97b;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999; opacity: 0.4;
+}
+
+.page { display: none; min-height: 100vh; }
+.page.active { display: flex; }
+
+#page-auth {
+  align-items: center; justify-content: center;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, #1a1040 0%, var(--bg) 70%);
+}
+
+.auth-card {
+  width: 100%; max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+  animation: slideUp .5s cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes slideUp {
+  from { opacity:0; transform: translateY(30px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+.auth-logo { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+.auth-logo span { color: var(--accent); }
+.auth-subtitle { color: var(--text2); font-size: 14px; margin-bottom: 32px; }
+
+.auth-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 28px; }
+.auth-tab { flex: 1; padding: 8px; border: none; background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 14px; border-radius: 6px; cursor: pointer; transition: all .2s; }
+.auth-tab.active { background: var(--accent); color: #fff; font-weight: 500; }
+
+.form-group { margin-bottom: 16px; }
+label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
+
+input[type=text], input[type=email], input[type=password], textarea, select {
+  width: 100%; padding: 12px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  outline: none; transition: border-color .2s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 90px; }
+select option { background: var(--surface2); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border: none; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; text-decoration: none; }
+.btn-primary { background: var(--accent); color: #fff; width: 100%; padding: 14px; }
+.btn-primary:hover { background: #7b74ff; transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: rgba(255,77,109,.15); color: var(--danger); border: 1px solid rgba(255,77,109,.3); }
+.btn-danger:hover { background: rgba(255,77,109,.25); }
+.btn-success { background: rgba(67,233,123,.15); color: var(--success); border: 1px solid rgba(67,233,123,.3); }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.error-msg { color: var(--danger); font-size: 13px; margin-top: 10px; text-align: center; display: none; }
+
+#page-app { flex-direction: row; }
+
+.sidebar { width: 240px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; position: sticky; top: 0; height: 100vh; flex-shrink: 0; }
+.sidebar-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; padding: 0 20px; margin-bottom: 32px; }
+.sidebar-logo span { color: var(--accent); }
+.nav-section { margin-bottom: 24px; }
+.nav-label { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; padding: 0 20px; margin-bottom: 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; color: var(--text2); font-size: 14px; transition: all .15s; border-left: 2px solid transparent; }
+.nav-item:hover { color: var(--text); background: rgba(108,99,255,.08); }
+.nav-item.active { color: var(--accent); background: rgba(108,99,255,.12); border-left-color: var(--accent); }
+.nav-icon { width: 18px; text-align: center; font-size: 16px; }
+
+.sidebar-user { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); }
+.sidebar-user-name { font-size: 14px; font-weight: 500; }
+.sidebar-user-role { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+.btn-logout { display: block; width: 100%; margin-top: 10px; padding: 8px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text2); font-size: 13px; cursor: pointer; transition: all .2s; font-family: 'DM Sans', sans-serif; }
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+.main-content { flex: 1; overflow-y: auto; padding: 32px; }
+.view { display: none; animation: fadeIn .3s ease; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+
+.page-header { margin-bottom: 28px; }
+.page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.page-desc { color: var(--text2); font-size: 14px; margin-top: 4px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; }
+.stat-label { color: var(--text2); font-size: 13px; margin-top: 4px; }
+
+.ticket-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 10px; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 16px; }
+.ticket-card:hover { border-color: var(--accent); background: rgba(108,99,255,.05); transform: translateX(3px); }
+.ticket-id { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); min-width: 36px; }
+.ticket-info { flex: 1; }
+.ticket-title { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+.ticket-desc { font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-family: 'DM Mono', monospace; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+.badge-open { background: rgba(108,99,255,.2); color: var(--accent); }
+.badge-in_progress { background: rgba(255,209,102,.2); color: var(--warning); }
+.badge-closed { background: rgba(67,233,123,.2); color: var(--success); }
+.badge-user { background: rgba(136,136,170,.15); color: var(--text2); }
+.badge-admin { background: rgba(255,101,132,.2); color: var(--accent2); }
+.badge-operator { background: rgba(67,233,123,.15); color: var(--success); }
+
+.ticket-detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
+.back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--text2); cursor: pointer; font-size: 14px; margin-bottom: 16px; transition: color .2s; }
+.back-btn:hover { color: var(--accent); }
+
+.messages-list { margin: 20px 0; display: flex; flex-direction: column; gap: 12px; }
+.message-bubble { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+.message-bubble.mine { align-self: flex-end; background: rgba(108,99,255,.2); border: 1px solid rgba(108,99,255,.3); }
+.message-bubble.theirs { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); }
+.message-sender { font-size: 11px; color: var(--text3); margin-bottom: 4px; font-family: 'DM Mono', monospace; }
+.message-input-row { display: flex; gap: 10px; margin-top: 16px; }
+.message-input-row input { flex: 1; }
+
+.faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+.faq-question { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; transition: background .2s; }
+.faq-question:hover { background: rgba(108,99,255,.05); }
+.faq-answer { padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height .3s ease, padding .3s; color: var(--text2); font-size: 14px; line-height: 1.7; }
+.faq-item.open .faq-answer { max-height: 300px; padding: 0 20px 16px; }
+.faq-chevron { transition: transform .3s; color: var(--text3); }
+.faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 10px 14px; font-size: 11px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); border-bottom: 1px solid var(--border); }
+td { padding: 13px 14px; font-size: 14px; border-bottom: 1px solid rgba(42,42,61,.5); }
+tr:hover td { background: rgba(108,99,255,.04); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 440px; animation: slideUp .3s cubic-bezier(.16,1,.3,1); }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9998; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 12px 18px; border-radius: var(--radius-sm); font-size: 14px; min-width: 220px; animation: toastIn .3s ease; border: 1px solid; }
+.toast-success { background: rgba(67,233,123,.15); border-color: rgba(67,233,123,.3); color: var(--success); }
+.toast-error { background: rgba(255,77,109,.15); border-color: rgba(255,77,109,.3); color: var(--danger); }
+@keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: none; } }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state-text { font-size: 15px; }
+
+.status-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.new-ticket-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.add-faq-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+hr.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<div id="page-auth" class="page active">
+  <div class="auth-card">
+    <div class="auth-logo">Support<span>Desk</span></div>
+    <div class="auth-subtitle">Система технічної підтримки</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Вхід</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Реєстрація</button>
+    </div>
+    <div id="auth-login">
+      <div class="form-group"><label>Логін</label><input type="text" id="login-username" placeholder="username"></div>
+      <div class="form-group"><label>Пароль</label><input type="password" id="login-password" placeholder="••••••••"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Увійти</button>
+      <div class="error-msg" id="login-error"></div>
+    </div>
+    <div id="auth-register" style="display:none">
+      <div class="form-group"><label>Логін</label><input type="text" id="reg-username" placeholder="username"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Пароль</label><input type="password" id="reg-password" placeholder="••••••••"></div>
+      <button class="btn btn-primary" onclick="doRegister()">Зареєструватись</button>
+      <div class="error-msg" id="reg-error"></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-app" class="page">
+  <aside class="sidebar">
+    <div class="sidebar-logo">Support<span>Desk</span></div>
+    <nav>
+      <div class="nav-section">
+        <div class="nav-label">Головне</div>
+        <div class="nav-item active" onclick="showView('dashboard')"><span class="nav-icon">⬡</span> Дашборд</div>
+        <div class="nav-item" onclick="showView('tickets')"><span class="nav-icon">◈</span> Тікети</div>
+        <div class="nav-item" onclick="showView('faq')"><span class="nav-icon">◉</span> FAQ</div>
+      </div>
+      <div class="nav-section" id="admin-nav" style="display:none">
+        <div class="nav-label">Адмін</div>
+        <div class="nav-item" onclick="showView('admin-tickets')"><span class="nav-icon">◫</span> Всі тікети</div>
+        <div class="nav-item" onclick="showView('admin-users')"><span class="nav-icon">◎</span> Користувачі</div>
+        <div class="nav-item" onclick="showView('admin-faq')"><span class="nav-icon">◌</span> Керування FAQ</div>
+        <div class="nav-item" onclick="showView('admin-stats')"><span class="nav-icon">◐</span> Статистика</div>
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="sidebar-user-name" id="sidebar-username">—</div>
+      <div class="sidebar-user-role" id="sidebar-role">—</div>
+      <button class="btn-logout" onclick="doLogout()">Вийти</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div id="view-dashboard" class="view active">
+      <div class="page-header"><div class="page-title">Дашборд</div><div class="page-desc">Огляд вашої активності</div></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="dash-total">—</div><div class="stat-label">Всього тікетів</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--accent)" id="dash-open">—</div><div class="stat-label">Відкритих</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--warning)" id="dash-inprogress">—</div><div class="stat-label">В процесі</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--success)" id="dash-closed">—</div><div class="stat-label">Закритих</div></div>
+      </div>
+      <div class="section-title">Останні тікети</div>
+      <div id="dash-tickets-list"></div>
+    </div>
+
+    <div id="view-tickets" class="view">
+      <div class="page-header"><div class="page-title">Мої тікети</div><div class="page-desc">Звернення до підтримки</div></div>
+      <div class="new-ticket-section">
+        <div class="section-title">+ Нове звернення</div>
+        <div class="form-group"><label>Тема</label><input type="text" id="new-ticket-title" placeholder="Коротко опишіть проблему"></div>
+        <div class="form-group"><label>Опис</label><textarea id="new-ticket-desc" placeholder="Детальний опис проблеми..."></textarea></div>
+        <button class="btn btn-primary" style="width:auto" onclick="createTicket()">Надіслати звернення</button>
+      </div>
+      <div class="section-title">Мої звернення</div>
+      <div id="my-tickets-list"></div>
+    </div>
+
+    <div id="view-ticket-detail" class="view">
+      <div class="back-btn" onclick="goBack()">← Назад</div>
+      <div class="ticket-detail-header">
+        <div><div class="page-title" id="detail-title">—</div><div class="page-desc" id="detail-desc">—</div></div>
+        <div id="detail-badge"></div>
+      </div>
+      <div id="detail-status-actions" style="display:none" class="status-actions">
+        <span style="font-size:13px;color:var(--text2)">Змінити статус:</span>
+        <button class="btn btn-ghost btn-sm" onclick="changeStatus('open')">Відкрити</button>
+        <button class="btn btn-ghost btn-sm" onclick="changeStatus('in_progress')">В процесі</button>
+        <button class="btn btn-success btn-sm" onclick="changeStatus('closed')">Закрити</button>
+      </div>
+      <hr class="divider">
+      <div class="section-title">Переписка</div>
+      <div class="messages-list" id="messages-list"></div>
+      <div class="message-input-row">
+        <input type="text" id="msg-input" placeholder="Напишіть повідомлення..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="btn btn-primary" style="width:auto" onclick="sendMessage()">Надіслати</button>
+      </div>
+    </div>
+
+    <div id="view-faq" class="view">
+      <div class="page-header"><div class="page-title">FAQ</div><div class="page-desc">Часті запитання та відповіді</div></div>
+      <div id="faq-list"></div>
+    </div>
+
+    <div id="view-admin-tickets" class="view">
+      <div class="page-header"><div class="page-title">Всі тікети</div><div class="page-desc">Управління зверненнями</div></div>
+      <div id="admin-tickets-list"></div>
+    </div>
+
+    <div id="view-admin-users" class="view">
+      <div class="page-header"><div class="page-title">Користувачі</div><div class="page-desc">Управління ролями</div></div>
+      <div class="card table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Логін</th><th>Email</th><th>Роль</th><th>Дія</th></tr></thead>
+          <tbody id="users-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-admin-faq" class="view">
+      <div class="page-header"><div class="page-title">Керування FAQ</div><div class="page-desc">Додавання та видалення записів</div></div>
+      <div class="add-faq-card">
+        <div class="section-title">Додати запис</div>
+        <div class="form-group"><label>Питання</label><input type="text" id="faq-q" placeholder="Введіть питання"></div>
+        <div class="form-group"><label>Відповідь</label><textarea id="faq-a" placeholder="Введіть відповідь..."></textarea></div>
+        <button class="btn btn-primary" style="width:auto" onclick="addFaq()">Додати</button>
+      </div>
+      <div class="section-title">Записи FAQ</div>
+      <div id="admin-faq-list"></div>
+    </div>
+
+    <div id="view-admin-stats" class="view">
+      <div class="page-header"><div class="page-title">Статистика системи</div><div class="page-desc">Загальні показники</div></div>
+      <div class="stats-grid" id="admin-stats-grid"></div>
+      <div class="section-title" style="margin-top:8px">Тікети за статусом</div>
+      <div id="admin-stats-by-status" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-role">
+  <div class="modal">
+    <div class="modal-title">Змінити роль</div>
+    <div class="form-group">
+      <label>Нова роль для <span id="modal-role-username"></span></label>
+      <select id="modal-role-select">
+        <option value="user">user</option>
+        <option value="operator">operator</option>
+        <option value="admin">admin</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-role')">Скасувати</button>
+      <button class="btn btn-primary" style="width:auto" onclick="saveRole()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let token = localStorage.getItem('token') || null;
+let currentUser = null;
+let currentTicketId = null;
+let prevView = 'tickets';
+let modalRoleUserId = null;
+
+function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return fetch(API + path, { headers, ...opts }).then(async r => {
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: 'Помилка' }));
+      throw new Error(err.detail || JSON.stringify(err));
+    }
+    return r.json();
+  });
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function badgeHtml(status) { return `<span class="badge badge-${status}">${statusLabel(status)}</span>`; }
+function statusLabel(s) { return { open: 'відкрито', in_progress: 'в процесі', closed: 'закрито' }[s] || s; }
+function roleBadge(role) { return `<span class="badge badge-${role}">${role}</span>`; }
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('auth-register').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+    token = data.access_token;
+    localStorage.setItem('token', token);
+    await initApp();
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errEl = document.getElementById('reg-error');
+  errEl.style.display = 'none';
+  try {
+    await api('/users/register', { method: 'POST', body: JSON.stringify({ username, email, password }) });
+    toast('Реєстрація успішна! Увійдіть.');
+    switchAuthTab('login');
+    document.getElementById('login-username').value = username;
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+function doLogout() {
+  token = null; localStorage.removeItem('token'); currentUser = null;
+  document.getElementById('page-app').classList.remove('active');
+  document.getElementById('page-auth').classList.add('active');
+}
+
+async function initApp() {
+  try { currentUser = await api('/users/me'); } catch { doLogout(); return; }
+  document.getElementById('page-auth').classList.remove('active');
+  document.getElementById('page-app').classList.add('active');
+  document.getElementById('sidebar-username').textContent = currentUser.username;
+  document.getElementById('sidebar-role').textContent = currentUser.role;
+  document.getElementById('admin-nav').style.display = ['admin','operator'].includes(currentUser.role) ? 'block' : 'none';
+  showView('dashboard');
+}
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById('view-' + name);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(`'${name}'`)) n.classList.add('active');
+  });
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'tickets') loadMyTickets();
+  if (name === 'faq') loadFaq();
+  if (name === 'admin-tickets') loadAdminTickets();
+  if (name === 'admin-users') loadUsers();
+  if (name === 'admin-faq') loadAdminFaq();
+  if (name === 'admin-stats') loadStats();
+}
+
+function goBack() { showView(prevView); }
+
+async function loadDashboard() {
+  try {
+    const tickets = await api('/tickets/my');
+    document.getElementById('dash-total').textContent = tickets.length;
+    document.getElementById('dash-open').textContent = tickets.filter(t=>t.status==='open').length;
+    document.getElementById('dash-inprogress').textContent = tickets.filter(t=>t.status==='in_progress').length;
+    document.getElementById('dash-closed').textContent = tickets.filter(t=>t.status==='closed').length;
+    const recent = tickets.slice(-5).reverse();
+    document.getElementById('dash-tickets-list').innerHTML = recent.length ? recent.map(ticketCardHtml).join('') : emptyState('Тікетів поки немає');
+  } catch {}
+}
+
+function ticketCardHtml(t) {
+  return `<div class="ticket-card" onclick="openTicket(${t.id}, 'tickets')">
+    <div class="ticket-id">#${t.id}</div>
+    <div class="ticket-info"><div class="ticket-title">${esc(t.title)}</div><div class="ticket-desc">${esc(t.description)}</div></div>
+    ${badgeHtml(t.status)}
+  </div>`;
+}
+
+async function loadMyTickets() {
+  const el = document.getElementById('my-tickets-list');
+  el.innerHTML = '<div style="color:var(--text3);font-size:13px">Завантаження...</div>';
+  try {
+    const tickets = await api('/tickets/my');
+    el.innerHTML = tickets.length ? tickets.reverse().map(ticketCardHtml).join('') : emptyState('Звернень поки немає. Створіть перше!');
+  } catch { el.innerHTML = emptyState('Помилка завантаження'); }
+}
+
+async function createTicket() {
+  const title = document.getElementById('new-ticket-title').value.trim();
+  const description = document.getElementById('new-ticket-desc').value.trim();
+  if (!title || !description) { toast('Заповніть всі поля', 'error'); return; }
+  try {
+    await api('/tickets/', { method: 'POST', body: JSON.stringify({ title, description }) });
+    document.getElementById('new-ticket-title').value = '';
+    document.getElementById('new-ticket-desc').value = '';
+    toast('Звернення надіслано!');
+    loadMyTickets(); loadDashboard();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openTicket(id, from) {
+  prevView = from || 'tickets'; currentTicketId = id;
+  try {
+    const ticket = await api(`/tickets/${id}`);
+    document.getElementById('detail-title').textContent = ticket.title;
+    document.getElementById('detail-desc').textContent = ticket.description;
+    document.getElementById('detail-badge').innerHTML = badgeHtml(ticket.status);
+    document.getElementById('detail-status-actions').style.display = ['admin','operator'].includes(currentUser.role) ? 'flex' : 'none';
+    await loadMessages(id);
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-ticket-detail').classList.add('active');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadMessages(id) {
+  const el = document.getElementById('messages-list');
+  try {
+    const msgs = await api(`/tickets/${id}/messages`);
+    el.innerHTML = msgs.length
+      ? msgs.map(m => `<div class="message-bubble ${m.sender_id === currentUser.id ? 'mine' : 'theirs'}"><div class="message-sender">Користувач #${m.sender_id}</div>${esc(m.text)}</div>`).join('')
+      : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Повідомлень поки немає</div>';
+    el.scrollTop = el.scrollHeight;
+  } catch {}
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    await api(`/tickets/${currentTicketId}/messages/`, { method: 'POST', body: JSON.stringify({ text }) });
+    input.value = ''; loadMessages(currentTicketId);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function changeStatus(status) {
+  try {
+    await api(`/tickets/${currentTicketId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    toast('Статус оновлено'); openTicket(currentTicketId, prevView);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadAdminTickets() {
+  const el = document.getElementById('admin-tickets-list');
+  el.innerHTML = '<div style="color:var(--text3);font-size:13px">Завантаження...</div>';
+  try {
+    const tickets = await api('/tickets/');
+    el.innerHTML = tickets.length ? tickets.reverse().map(t => `
+      <div class="ticket-card" onclick="openTicket(${t.id}, 'admin-tickets')">
+        <div class="ticket-id">#${t.id}</div>
+        <div class="ticket-info"><div class="ticket-title">${esc(t.title)}</div><div class="ticket-desc">${esc(t.description)} <span style="color:var(--text3)">• користувач #${t.owner_id}</span></div></div>
+        ${badgeHtml(t.status)}
+      </div>`).join('') : emptyState('Тікетів немає');
+  } catch { el.innerHTML = emptyState('Помилка'); }
+}
+
+async function loadFaq() {
+  const el = document.getElementById('faq-list');
+  try {
+    const faqs = await api('/faq/');
+    el.innerHTML = faqs.length ? faqs.map(f => `
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question"><span>${esc(f.question)}</span><span class="faq-chevron">▾</span></div>
+        <div class="faq-answer">${esc(f.answer)}</div>
+      </div>`).join('') : emptyState('FAQ порожній');
+  } catch {}
+}
+
+function toggleFaq(el) { el.classList.toggle('open'); }
+
+async function loadAdminFaq() {
+  const el = document.getElementById('admin-faq-list');
+  try {
+    const faqs = await api('/faq/');
+    el.innerHTML = faqs.length ? faqs.map(f => `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+        <div><div style="font-weight:500;margin-bottom:4px">${esc(f.question)}</div><div style="color:var(--text2);font-size:13px">${esc(f.answer)}</div></div>
+        <button class="btn btn-danger btn-sm" onclick="deleteFaq(${f.id})">Видалити</button>
+      </div>`).join('') : emptyState('FAQ порожній');
+  } catch {}
+}
+
+async function addFaq() {
+  const question = document.getElementById('faq-q').value.trim();
+  const answer = document.getElementById('faq-a').value.trim();
+  if (!question || !answer) { toast('Заповніть обидва поля', 'error'); return; }
+  try {
+    await api('/faq/', { method: 'POST', body: JSON.stringify({ question, answer }) });
+    document.getElementById('faq-q').value = ''; document.getElementById('faq-a').value = '';
+    toast('FAQ додано!'); loadAdminFaq();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteFaq(id) {
+  try { await api(`/faq/${id}`, { method: 'DELETE' }); toast('Видалено'); loadAdminFaq(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadUsers() {
+  const tbody = document.getElementById('users-table-body');
+  try {
+    const users = await api('/users/');
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">#${u.id}</td>
+        <td><strong>${esc(u.username)}</strong></td>
+        <td style="color:var(--text2)">${esc(u.email)}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="openRoleModal(${u.id},'${u.username}','${u.role}')">Змінити роль</button></td>
+      </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openRoleModal(id, username, role) {
+  modalRoleUserId = id;
+  document.getElementById('modal-role-username').textContent = username;
+  document.getElementById('modal-role-select').value = role;
+  document.getElementById('modal-role').classList.add('open');
+}
+
+async function saveRole() {
+  const role = document.getElementById('modal-role-select').value;
+  try {
+    await api(`/users/${modalRoleUserId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
+    toast('Роль оновлено'); closeModal('modal-role'); loadUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/admin/stats');
+    document.getElementById('admin-stats-grid').innerHTML = `
+      <div class="stat-card"><div class="stat-value">${s.users_count}</div><div class="stat-label">Користувачів</div></div>
+      <div class="stat-card"><div class="stat-value">${s.tickets_count}</div><div class="stat-label">Тікетів</div></div>
+      <div class="stat-card"><div class="stat-value">${s.messages_count}</div><div class="stat-label">Повідомлень</div></div>`;
+    document.getElementById('admin-stats-by-status').innerHTML = Object.entries(s.tickets_by_status).map(([k,v]) => `
+      <div class="stat-card" style="min-width:140px"><div class="stat-value">${v}</div><div class="stat-label">${statusLabel(k)}</div></div>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+function esc(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function emptyState(text) { return `<div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">${text}</div></div>`; }
+
+if (token) initApp();
+</script>
+</body>
+</html>
